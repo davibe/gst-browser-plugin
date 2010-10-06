@@ -285,6 +285,221 @@ gbp_player_set_property (GObject * object, guint prop_id,
     ;
 }
 
+
+/* WIMTV */
+#if 1
+
+static void
+on_pad_added (GstElement *element,
+        GstPad     *pad,
+        gboolean islast,
+        gpointer    data)
+{
+  GstPad *sinkpad_a;
+  GstPad *sinkpad_v;
+
+  GstElement *queue_a;
+  GstElement *conv;
+  GstElement *audiosink;
+
+  GstElement *queue_v;
+  GstElement *videoscale;
+  GstElement *ffmpegcolorspace;
+  GstElement *resample;
+  GstPipeline *pipeline;
+  GstElement *videosink;
+  GstElement *queue2;
+  GbpPlayer *player;
+  int ret;
+
+  player = (GbpPlayer *) data;
+  pipeline = player->priv->pipeline;
+
+  GstCaps *caps = gst_pad_get_caps (pad);
+  const gchar *caps_name = gst_structure_get_name (
+      gst_caps_get_structure(caps, 0));
+
+  if (g_strrstr(caps_name, "audio")) {
+    g_debug("LINKIN AUDIO");
+    queue_a = gst_element_factory_make ("queue", "queue_audio");
+    conv = gst_element_factory_make ("audioconvert", "converter");
+    resample = gst_element_factory_make ("audioresample", "audioresample");
+    queue2 = gst_element_factory_make ("queue2", "queue-2");
+    audiosink = gst_element_factory_make ("autoaudiosink", "audio-output");
+
+    gst_bin_add_many (GST_BIN (pipeline), queue_a, conv, resample, queue2,
+        audiosink, NULL);
+    ret = gst_element_link_many (queue_a, conv, resample, queue2,
+        audiosink, NULL);
+    if (ret != 1) g_debug ("ERROR linking gst elements 1");
+
+    sinkpad_a = gst_element_get_static_pad (queue_a, "sink");
+    ret = gst_pad_link (pad, sinkpad_a);
+    if (ret != GST_PAD_LINK_OK)
+      g_debug ("ERROR linking gst elements : pad to queue_a");
+
+    gst_element_set_state (queue_a, GST_STATE_PLAYING);
+    gst_element_set_state (conv, GST_STATE_PLAYING);
+    gst_element_set_state (resample, GST_STATE_PLAYING);
+    gst_element_set_state (queue2, GST_STATE_PLAYING);
+    gst_element_set_state (audiosink, GST_STATE_PLAYING);
+  }
+
+  if (g_strrstr (caps_name, "video")) {
+    g_debug("LINKIN VIDEO");
+    queue_v = gst_element_factory_make ("queue", "queue_video");
+    videoscale = gst_element_factory_make ("videoscale", "videoscale");
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace",
+        "ffmpegcolorspace");
+#ifdef XP_MACOSX
+    videosink = gst_element_factory_make ("osxvideosink", NULL);
+#else
+    videosink = gst_element_factory_make ("autovideosink", NULL);
+#endif
+
+    g_object_connect (videosink,
+        "signal::element-added", autovideosink_element_added_cb, player,
+        NULL);
+
+    gst_bin_add_many(GST_BIN (pipeline), queue_v, ffmpegcolorspace, videoscale,
+        videosink, NULL);
+    ret = gst_element_link_many (queue_v, ffmpegcolorspace, videoscale,
+        videosink, NULL);
+    if (ret != 1) g_debug("ERROR linking gst elements in videopipeline");
+
+    sinkpad_v = gst_element_get_static_pad(queue_v, "sink");
+    ret = gst_pad_link (pad, sinkpad_v);
+    if (ret != GST_PAD_LINK_OK)
+      g_debug("ERROR linking gst elements to videopipeline");
+
+    gst_element_set_state(queue_v, GST_STATE_PLAYING);
+    gst_element_set_state(ffmpegcolorspace, GST_STATE_PLAYING);
+    gst_element_set_state(videoscale, GST_STATE_PLAYING);
+    gst_element_set_state(videosink, GST_STATE_PLAYING);
+  }
+
+}
+
+static void
+on_livedemux_pad_added (GstElement *element, GstPad *pad, gpointer data)
+{
+    GstCaps *caps;
+    GstStructure *str;
+		const gchar *c;
+    GstElement *decodera, *decoderv;
+    GstPipeline *pipeline;
+    GbpPlayer *player;
+    gint ret;
+
+    caps = gst_pad_get_caps (pad);
+    g_assert (caps != NULL);
+    str = gst_caps_get_structure (caps, 0);
+    g_assert (str != NULL);
+    c = gst_structure_get_name(str);
+
+    player = (GbpPlayer *) data;
+    pipeline = player->priv->pipeline;
+
+    if (g_strrstr (c, "video") || g_strrstr (c, "image")) {
+      g_debug ("Linking video pad to demuxerv");
+      decoderv = gst_bin_get_by_name (GST_BIN(pipeline), "decoderv");
+      ret = gst_pad_link (pad, gst_element_get_pad (decoderv, "sink"));
+      if (ret != GST_PAD_LINK_OK)
+        g_debug ("ERROR linking gst elements : decoderv");
+      g_signal_connect (decoderv, "new-decoded-pad",
+          G_CALLBACK (on_pad_added), player);
+    }
+
+    if (g_strrstr (c, "audio")) {
+      g_debug ("Linking audio pad to demuxera");
+      decodera = gst_bin_get_by_name (GST_BIN(pipeline), "decodera");
+      ret = gst_pad_link (pad, gst_element_get_pad (decodera, "sink"));
+      if (ret != GST_PAD_LINK_OK)
+        g_debug ("ERROR linking gst elements : decodera");
+      g_signal_connect (decodera, "new-decoded-pad",
+          G_CALLBACK (on_pad_added), player);
+    }
+
+    gst_caps_unref (caps);
+}
+
+static gboolean
+build_pipeline (GbpPlayer *player)
+{
+  GstElement *livesrc, *livedemux, *decodera, *decoderv;
+  gint ret;
+
+  if (player->priv->pipeline != NULL) {
+    gst_element_set_state (GST_ELEMENT (player->priv->pipeline),
+        GST_STATE_NULL);
+    g_object_unref (player->priv->pipeline);
+  }
+
+  player->priv->pipeline = (GstPipeline *) gst_pipeline_new ("pipeline0");
+
+  livesrc = gst_element_factory_make ("livertsp", "livesrc");
+  livedemux = gst_element_factory_make ("livedemuxer", "dmux");
+  decodera = gst_element_factory_make ("decodebin", "decodera");
+  decoderv = gst_element_factory_make ("decodebin", "decoderv");
+
+  gst_bin_add_many (GST_BIN (player->priv->pipeline), livesrc, livedemux,
+      decodera, decoderv, NULL);
+  ret = gst_element_link (livesrc, livedemux);
+  if (ret != 1) g_debug ("ERROR linking gst elements : livesrc to livedemuxer");
+
+  g_signal_connect (livedemux, "pad-added",
+      G_CALLBACK (on_livedemux_pad_added), player);
+
+  player->priv->bus = gst_pipeline_get_bus (player->priv->pipeline);
+  gst_bus_enable_sync_message_emission (player->priv->bus);
+  g_object_connect (player->priv->bus,
+      "signal::sync-message::state-changed", G_CALLBACK (on_bus_state_changed_cb), player,
+      "signal::sync-message::eos", G_CALLBACK (on_bus_eos_cb), player,
+      "signal::sync-message::error", G_CALLBACK (on_bus_error_cb), player,
+      "signal::sync-message::element", G_CALLBACK (on_bus_element_cb), player,
+      NULL);
+
+  g_object_connect (player->priv->pipeline,
+      "signal::notify::source", playbin_source_cb, player,
+      NULL);
+
+  player->priv->have_pipeline = TRUE;
+  return TRUE;
+}
+
+void
+gbp_player_start (GbpPlayer *player)
+{
+  g_return_if_fail (player != NULL);
+
+  if (player->priv->have_pipeline == FALSE) {
+    if (!build_pipeline (player))
+      /* player::error has been emitted, return */
+      return;
+  }
+
+  if (player->priv->uri_changed) {
+    gbp_player_stop (player);
+
+    g_object_set (
+        gst_bin_get_by_name (GST_BIN(player->priv->pipeline), "livesrc"),
+        "uri", player->priv->uri, NULL);
+    player->priv->uri_changed = FALSE;
+  }
+
+  if (player->priv->reset_state) {
+    gbp_player_stop (player);
+    player->priv->reset_state = FALSE;
+  }
+
+  gst_element_set_state (GST_ELEMENT (player->priv->pipeline),
+      GST_STATE_PLAYING);
+}
+
+#endif 
+
+#if 0
+
 static gboolean
 build_pipeline (GbpPlayer *player)
 {
@@ -376,6 +591,7 @@ build_pipeline (GbpPlayer *player)
   return TRUE;
 }
 
+
 void
 gbp_player_start (GbpPlayer *player)
 {
@@ -402,6 +618,8 @@ gbp_player_start (GbpPlayer *player)
   gst_element_set_state (GST_ELEMENT (player->priv->pipeline),
       GST_STATE_PLAYING);
 }
+
+#endif
 
 void
 gbp_player_pause (GbpPlayer *player)
@@ -518,6 +736,11 @@ playbin_source_cb (GstElement *playbin,
   if (g_object_class_find_property (klass, "latency")) {
     g_object_set (element, "latency",
         GST_TIME_AS_MSECONDS (player->priv->latency), NULL);
+  }
+
+  if (g_object_class_find_property (klass, "protocols")) {
+    g_object_set (element, "protocols",
+        0x00000004, NULL);
   }
 
   if (g_object_class_find_property (klass, "tcp-timeout")) {

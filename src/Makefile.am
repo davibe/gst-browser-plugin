@@ -16,7 +16,7 @@ nodist_libgst_browser_plugin_la_SOURCES = \
 		i586-mingw32msvc-windres $(RCFLAGS) $< -o $@
 
 libgst_browser_plugin_la_LIBADD = $(GST_LIBS) -lgstinterfaces-0.10
-libgst_browser_plugin_la_LDFLAGS = -avoid-version -no-undefined -dynamic -ldl
+libgst_browser_plugin_la_LDFLAGS = -avoid-version -no-undefined -dynamic
 libgst_browser_plugin_la_CFLAGS = $(GST_CFLAGS) -Wall -Werror -D_GNU_SOURCE
 if OSX_BUILD
 libgst_browser_plugin_la_CFLAGS += -DXP_MACOSX -ObjC -framework AppKit -framework Carbon -framework Quartz
@@ -31,6 +31,8 @@ libgst_browser_plugin_la_LDFLAGS += -export-symbols $(srcdir)/nprt.def \
   -Xlinker resource.o --enable-stdcall-fixup
 libgst_browser_plugin_la_SOURCES += resource.rc
 libgst_browser_plugin_la_DEPENDENCIES = resource.o
+else
+libgst_browser_plugin_la_LDFLAGS += -ldl
 endif
 
 noinst_HEADERS = \

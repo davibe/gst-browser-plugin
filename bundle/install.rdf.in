@@ -3,7 +3,7 @@
 <RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
   <Description about="urn:mozilla:install-manifest">
-    <em:id>gst-browser-plugin@alessandrodecina.com</em:id>
+    <em:id>wimtv@wim.tv</em:id>
     <em:version>@VERSION@</em:version>
     <!-- 2 == extension -->
     <em:type>2</em:type>
@@ -14,8 +14,8 @@
       <em:maxVersion>3.8.*</em:maxVersion>
      </Description>
     </em:targetApplication>
-    <em:name>GStreamer Browser Plugin</em:name>
-    <em:creator>Alessandro Decina</em:creator>
+    <em:name>WimTV Browser Plugin</em:name>
+    <em:creator>Davide Bertola</em:creator>
     <em:targetPlatform>@MANIFEST_PLATFORM@</em:targetPlatform>
   </Description>
 </RDF>

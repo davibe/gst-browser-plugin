@@ -1,8 +1,9 @@
 #!/bin/bash
 
-GST_PLUGINS_DEST=$(pwd)"/gbp.plugin/Contents/Frameworks/Plugins/"
-LIB_DEST=$(pwd)"/gbp.plugin/Contents/Frameworks/"
-PLUGIN_DEST=$(pwd)"/gbp.plugin/Contents/MacOS/"
+PLUGIN_NAME="wimtv"
+GST_PLUGINS_DEST=$(pwd)"/$PLUGIN_NAME.plugin/Contents/Frameworks/Plugins/"
+LIB_DEST=$(pwd)"/$PLUGIN_NAME.plugin/Contents/Frameworks/"
+PLUGIN_DEST=$(pwd)"/$PLUGIN_NAME.plugin/Contents/MacOS/"
 START_DIR=$(pwd)
 
 if [ $# -ne 1 ]; then

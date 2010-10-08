@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>libgst-browser-plugin.dylib</string>
 	<key>CFBundleIdentifier</key>
-	<string>it.dadeb.gbp</string>
+	<string>it.wimtv.plugin</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
@@ -24,11 +24,11 @@
 	<string>GSTreamer Plug-in</string>
 	<key>WebPluginMIMETypes</key>
 	<dict>
-		<key>application/x-gbp</key>
+		<key>application/x-wimtv-player</key>
 		<dict>
 			<key>WebPluginExtensions</key>
 			<array>
-				<string>gbp</string>
+				<string>wimtv-player</string>
 			</array>
 			<key>WebPluginTypeDescription</key>
 			<string>Test mimetype</string>

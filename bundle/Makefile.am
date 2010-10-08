@@ -4,8 +4,8 @@ bundle: $(top_builddir)/src/libgst-browser-plugin.la
 	cp $$(ldd $(top_builddir)/bundle/plugins/libgst-browser-plugin.so| \
 				sed -e "s/.*=> //" | cut -d " " -f1 | grep usr) \
 			$(top_builddir)/bundle/platform/Linux_x86-gcc3/
-	rm -f $(top_builddir)/gstreamer-browser-plugin-$(VERSION).xpi
-	zip -r $(top_builddir)/gstreamer-browser-plugin-$(VERSION).xpi *
+	rm -f $(top_builddir)/wimtv-browser-plugin-$(VERSION).xpi
+	zip -r $(top_builddir)/wimtv-browser-plugin-$(VERSION).xpi *
 
 clean-bundle:
 	rm -f $(top_builddir)/bundle/plugins/libgst-browser-plugin.so

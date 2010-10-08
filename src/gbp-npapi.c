@@ -391,7 +391,7 @@ NP_GetMIMEDescription ()
 {
   char *mime = gbp_plugin_get_mime_types_description ();
   if (mime == NULL) {
-    gbp_plugin_add_mime_type ("application/x-gbp");
+    gbp_plugin_add_mime_type ("application/x-wimtv-player");
     mime = gbp_plugin_get_mime_types_description ();
   }
 

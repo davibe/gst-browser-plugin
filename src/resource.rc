@@ -40,7 +40,7 @@ BEGIN
             VALUE "MIMEType", "application/x-wimtv-player\0"
             VALUE "OriginalFilename", "nplibwtv.dll\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "gstreamer browser plugin\0"
+            VALUE "ProductName", "wimtv browser plugin\0"
             VALUE "ProductVersion", "0, 1\0"
             VALUE "SpecialBuild", "\0"
         END

@@ -17,11 +17,11 @@
 	<key>CFBundleSignature</key>
 	<string>GBP</string>
 	<key>CFBundleVersion</key>
-	<string>1.0.0.0</string>
+	<string>0.0.0.1</string>
 	<key>WebPluginName</key>
-	<string>Gstreamer Browser Plug-in</string>
+	<string>WimTV Browser Plug-in</string>
 	<key>WebPluginDescription</key>
-	<string>GSTreamer Plug-in</string>
+	<string>WimTV Plug-in</string>
 	<key>WebPluginMIMETypes</key>
 	<dict>
 		<key>application/x-wimtv-player</key>

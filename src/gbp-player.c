@@ -40,7 +40,8 @@ enum {
   PROP_HEIGHT,
   PROP_VOLUME,
   PROP_HAVE_AUDIO,
-  PROP_VIDEO_SINK
+  PROP_VIDEO_SINK,
+  PROP_KEY
 };
 
 enum {
@@ -56,6 +57,7 @@ struct _GbpPlayerPrivate
 {
   gulong xid;
   char *uri;
+  char *key;
   gboolean uri_changed;
   guint width;
   guint height;
@@ -158,6 +160,10 @@ gbp_player_class_init (GbpPlayerClass *klass)
       g_param_spec_string ("video-sink", "Video-Sink",
         "Preferred videosink element name", DEFAULT_VIDEO_SINK, flags));
 
+  g_object_class_install_property (gobject_class, PROP_KEY,
+      g_param_spec_string ("key", "Key", "Decoding KEY",
+          "", flags));
+
   player_signals[SIGNAL_PLAYING] = g_signal_new ("playing",
       G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
       G_STRUCT_OFFSET (GbpPlayerClass, playing), NULL, NULL,
@@ -226,6 +232,8 @@ gbp_player_get_property (GObject * object, guint prop_id,
       break;
     case PROP_VIDEO_SINK:
       g_value_set_string (value, player->priv->video_sink);
+    case PROP_KEY:
+      g_value_set_string (value, player->priv->key);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -270,6 +278,9 @@ gbp_player_set_property (GObject * object, guint prop_id,
         player->priv->have_audio = have_audio;
         player->priv->have_pipeline = FALSE;
       }
+    case PROP_KEY:
+      player->priv->key = g_value_dup_string (value);
+      break;
 
       break;
     case PROP_VIDEO_SINK:
@@ -309,6 +320,7 @@ on_pad_added (GstElement *element,
   GstPipeline *pipeline;
   GstElement *videosink;
   GstElement *queue2;
+
   GbpPlayer *player;
   int ret;
 
@@ -331,18 +343,26 @@ on_pad_added (GstElement *element,
         audiosink, NULL);
     ret = gst_element_link_many (queue_a, conv, resample, queue2,
         audiosink, NULL);
-    if (ret != 1) g_debug ("ERROR linking gst elements 1");
+    if (ret != 1) g_debug ("ERROR linking gst elements");
 
     sinkpad_a = gst_element_get_static_pad (queue_a, "sink");
     ret = gst_pad_link (pad, sinkpad_a);
     if (ret != GST_PAD_LINK_OK)
       g_debug ("ERROR linking gst elements : pad to queue_a");
 
+
     gst_element_set_state (queue_a, GST_STATE_PLAYING);
     gst_element_set_state (conv, GST_STATE_PLAYING);
     gst_element_set_state (resample, GST_STATE_PLAYING);
     gst_element_set_state (queue2, GST_STATE_PLAYING);
     gst_element_set_state (audiosink, GST_STATE_PLAYING);
+
+    g_object_set (
+        GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
+        "ts-offset", GST_SECOND, NULL);
+    g_object_set (
+        GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
+        "drift-tolerance", 500*GST_MSECOND, NULL);
   }
 
   if (g_strrstr (caps_name, "video")) {
@@ -376,8 +396,15 @@ on_pad_added (GstElement *element,
     gst_element_set_state(ffmpegcolorspace, GST_STATE_PLAYING);
     gst_element_set_state(videoscale, GST_STATE_PLAYING);
     gst_element_set_state(videosink, GST_STATE_PLAYING);
-  }
 
+#ifdef XP_MACOSX
+    g_object_set (videosink, "ts-offset", GST_SECOND, NULL);
+#else
+    g_object_set (
+        GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
+        "ts-offset", GST_SECOND, NULL);
+#endif
+  }
 }
 
 static void
@@ -496,7 +523,7 @@ gbp_player_start (GbpPlayer *player)
       GST_STATE_PLAYING);
 }
 
-#endif 
+#endif
 
 #if 0
 

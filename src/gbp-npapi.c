@@ -93,6 +93,8 @@ NPP_New (NPMIMEType plugin_type, NPP instance, uint16_t mode,
       width = atoi (argv[i]);
     else if (!strcmp (argn[i], "height"))
       height = atoi (argv[i]);
+    else if (!strcmp (argn[i], "key"))
+      g_print ("\n\n %s \n\n", argv[i]);
   }
 
   if (uri == NULL || width == 0 || height == 0)

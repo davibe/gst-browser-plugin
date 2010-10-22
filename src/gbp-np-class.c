@@ -102,6 +102,10 @@ static bool gbp_np_class_property_uri_get (NPObject *obj,
     NPIdentifier name, NPVariant *result);
 static bool gbp_np_class_property_uri_set (NPObject *obj,
     NPIdentifier name, const NPVariant *value);
+static bool gbp_np_class_property_key_get (NPObject *obj,
+    NPIdentifier name, NPVariant *result);
+static bool gbp_np_class_property_key_set (NPObject *obj,
+    NPIdentifier name, const NPVariant *value);
 static bool gbp_np_class_property_volume_get (NPObject *obj,
     NPIdentifier name, NPVariant *result);
 static bool gbp_np_class_property_volume_set (NPObject *obj,
@@ -152,6 +156,7 @@ static GbpNPClassMethod gbp_np_class_methods[] = {
 static GbpNPClassProperty gbp_np_class_properties[] = {
   {"state", gbp_np_class_property_state_get, NULL, NULL},
   {"uri", gbp_np_class_property_uri_get, gbp_np_class_property_uri_set, NULL},
+  {"key", gbp_np_class_property_key_get, gbp_np_class_property_key_set, NULL},
   {"volume", gbp_np_class_property_volume_get, gbp_np_class_property_volume_set, NULL},
   {"have_audio", gbp_np_class_property_have_audio_get, gbp_np_class_property_have_audio_set, NULL},
   /* sentinel */
@@ -554,6 +559,48 @@ static bool gbp_np_class_property_uri_set (NPObject *npobj,
 
   GST_INFO_OBJECT (data->player, "setting uri %s", uri);
   g_object_set (data->player, "uri", uri, NULL);
+
+  return TRUE;
+}
+
+static bool gbp_np_class_property_key_get (NPObject *npobj,
+    NPIdentifier name, NPVariant *result)
+{
+  GbpNPObject *obj = (GbpNPObject *) npobj;
+  char *key;
+  char *key_copy;
+
+  g_return_val_if_fail (obj != NULL, FALSE);
+  g_return_val_if_fail (result != NULL, FALSE);
+
+  NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
+
+  g_object_get (data->player, "key", &key, NULL);
+
+  key_copy = (char *) NPN_MemAlloc (strlen (key) + 1);
+  strcpy (key_copy, key);
+
+  g_free (key);
+
+  STRINGZ_TO_NPVARIANT (key_copy, *result);
+  return TRUE;
+}
+
+static bool gbp_np_class_property_key_set (NPObject *npobj,
+    NPIdentifier name, const NPVariant *value)
+{
+  GbpNPObject *obj = (GbpNPObject *) npobj;
+  const char *key;
+
+  g_return_val_if_fail (obj != NULL, FALSE);
+  g_return_val_if_fail (value != NULL, FALSE);
+
+  key = NPVARIANT_TO_STRING (*value).UTF8Characters;
+
+  NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
+
+  GST_INFO_OBJECT (data->player, "setting key %s", key);
+  g_object_set (data->player, "key", key, NULL);
 
   return TRUE;
 }

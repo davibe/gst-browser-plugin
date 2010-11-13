@@ -486,6 +486,8 @@ NP_Initialize (NPNetscapeFuncs *mozilla_vtable, NPPluginFuncs *plugin_vtable)
   library_path = get_library_path();
 #ifdef XP_WIN
   SetDllDirectory (library_path);
+  SetEnvironmentVariable ("GST_DEBUG_FILE", "c:/wimtv.log");
+  SetEnvironmentVariable ("GST_PLUGIN_PATH", "none");
 #endif
 
   g_type_init ();

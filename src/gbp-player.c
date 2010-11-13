@@ -368,7 +368,7 @@ on_pad_added (GstElement *element,
 
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
-        "ts-offset", 2*GST_SECOND, NULL);
+        "ts-offset", 4*GST_SECOND, NULL);
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
         "drift-tolerance", 500*GST_MSECOND, NULL);
@@ -411,11 +411,11 @@ on_pad_added (GstElement *element,
     g_object_set (GST_OBJECT (queue_v), "max-size-time", (guint64) 0, NULL);
 
 #ifdef XP_MACOSX
-    g_object_set (videosink, "ts-offset", 2*GST_SECOND, NULL);
+    g_object_set (videosink, "ts-offset", 4*GST_SECOND, NULL);
 #else
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
-        "ts-offset", 2*GST_SECOND, NULL);
+        "ts-offset", 4*GST_SECOND, NULL);
 #endif
   }
 }

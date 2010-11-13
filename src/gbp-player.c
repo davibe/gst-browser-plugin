@@ -265,7 +265,9 @@ gbp_player_set_property (GObject * object, guint prop_id,
       player->priv->volume = g_value_get_double (value);
 
       if (player->priv->have_pipeline)
-        g_object_set (player->priv->pipeline, "volume",
+        g_object_set (
+            gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"), 
+            "volume",
             g_value_get_double (value), NULL);
 
       break;
@@ -310,6 +312,7 @@ on_pad_added (GstElement *element,
   GstPad *sinkpad_v;
 
   GstElement *queue_a;
+  GstElement *volume;
   GstElement *conv;
   GstElement *audiosink;
 
@@ -319,7 +322,7 @@ on_pad_added (GstElement *element,
   GstElement *resample;
   GstPipeline *pipeline;
   GstElement *videosink;
-  GstElement *queue2;
+  //GstElement *queue2;
 
   GbpPlayer *player;
   int ret;
@@ -332,41 +335,47 @@ on_pad_added (GstElement *element,
       gst_caps_get_structure(caps, 0));
 
   if (g_strrstr(caps_name, "audio")) {
-    g_debug("LINKIN AUDIO");
+    GST_WARNING_OBJECT (player, "LINKIN AUDIO");
     queue_a = gst_element_factory_make ("queue", "queue_audio");
+    volume = gst_element_factory_make ("volume", "volume");
     conv = gst_element_factory_make ("audioconvert", "converter");
     resample = gst_element_factory_make ("audioresample", "audioresample");
-    queue2 = gst_element_factory_make ("queue2", "queue-2");
+    //queue2 = gst_element_factory_make ("queue2", "queue-2");
     audiosink = gst_element_factory_make ("autoaudiosink", "audio-output");
 
-    gst_bin_add_many (GST_BIN (pipeline), queue_a, conv, resample, queue2,
+    gst_bin_add_many (GST_BIN (pipeline), queue_a, conv, volume, resample,
         audiosink, NULL);
-    ret = gst_element_link_many (queue_a, conv, resample, queue2,
+    ret = gst_element_link_many (queue_a, conv, volume, resample,
         audiosink, NULL);
-    if (ret != 1) g_debug ("ERROR linking gst elements");
+    if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements");
 
     sinkpad_a = gst_element_get_static_pad (queue_a, "sink");
     ret = gst_pad_link (pad, sinkpad_a);
     if (ret != GST_PAD_LINK_OK)
-      g_debug ("ERROR linking gst elements : pad to queue_a");
+      GST_ERROR_OBJECT (player, "ERROR linking gst elements : pad to queue_a");
 
 
     gst_element_set_state (queue_a, GST_STATE_PLAYING);
     gst_element_set_state (conv, GST_STATE_PLAYING);
+    gst_element_set_state (volume, GST_STATE_PLAYING);
     gst_element_set_state (resample, GST_STATE_PLAYING);
-    gst_element_set_state (queue2, GST_STATE_PLAYING);
+    //gst_element_set_state (queue2, GST_STATE_PLAYING);
     gst_element_set_state (audiosink, GST_STATE_PLAYING);
+
+    g_object_set (GST_OBJECT (queue_a), "max-size-buffers", (guint64) 0, NULL);
+    g_object_set (GST_OBJECT (queue_a), "max-size-bytes", (guint64) 0, NULL);
+    g_object_set (GST_OBJECT (queue_a), "max-size-time", (guint64) 0, NULL);
 
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
-        "ts-offset", GST_SECOND, NULL);
+        "ts-offset", 2*GST_SECOND, NULL);
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
         "drift-tolerance", 500*GST_MSECOND, NULL);
   }
 
   if (g_strrstr (caps_name, "video")) {
-    g_debug("LINKIN VIDEO");
+    GST_WARNING_OBJECT (player, "LINKIN VIDEO");
     queue_v = gst_element_factory_make ("queue", "queue_video");
     videoscale = gst_element_factory_make ("videoscale", "videoscale");
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace",
@@ -385,24 +394,28 @@ on_pad_added (GstElement *element,
         videosink, NULL);
     ret = gst_element_link_many (queue_v, ffmpegcolorspace, videoscale,
         videosink, NULL);
-    if (ret != 1) g_debug("ERROR linking gst elements in videopipeline");
+    if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements in videopipeline");
 
     sinkpad_v = gst_element_get_static_pad(queue_v, "sink");
     ret = gst_pad_link (pad, sinkpad_v);
     if (ret != GST_PAD_LINK_OK)
-      g_debug("ERROR linking gst elements to videopipeline");
+      GST_ERROR_OBJECT (player, "ERROR linking gst elements to videopipeline");
 
     gst_element_set_state(queue_v, GST_STATE_PLAYING);
     gst_element_set_state(ffmpegcolorspace, GST_STATE_PLAYING);
     gst_element_set_state(videoscale, GST_STATE_PLAYING);
     gst_element_set_state(videosink, GST_STATE_PLAYING);
 
+    g_object_set (GST_OBJECT (queue_v), "max-size-buffers", (guint64) 0, NULL);
+    g_object_set (GST_OBJECT (queue_v), "max-size-bytes", (guint64) 0, NULL);
+    g_object_set (GST_OBJECT (queue_v), "max-size-time", (guint64) 0, NULL);
+
 #ifdef XP_MACOSX
-    g_object_set (videosink, "ts-offset", GST_SECOND, NULL);
+    g_object_set (videosink, "ts-offset", 2*GST_SECOND, NULL);
 #else
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
-        "ts-offset", GST_SECOND, NULL);
+        "ts-offset", 2*GST_SECOND, NULL);
 #endif
   }
 }
@@ -428,21 +441,21 @@ on_livedemux_pad_added (GstElement *element, GstPad *pad, gpointer data)
     pipeline = player->priv->pipeline;
 
     if (g_strrstr (c, "video") || g_strrstr (c, "image")) {
-      g_debug ("Linking video pad to demuxerv");
+      GST_WARNING_OBJECT (player, "Linking video pad to demuxerv");
       decoderv = gst_bin_get_by_name (GST_BIN(pipeline), "decoderv");
       ret = gst_pad_link (pad, gst_element_get_pad (decoderv, "sink"));
       if (ret != GST_PAD_LINK_OK)
-        g_debug ("ERROR linking gst elements : decoderv");
+        GST_ERROR_OBJECT (player, "ERROR linking gst elements : decoderv");
       g_signal_connect (decoderv, "new-decoded-pad",
           G_CALLBACK (on_pad_added), player);
     }
 
     if (g_strrstr (c, "audio")) {
-      g_debug ("Linking audio pad to demuxera");
+      GST_WARNING_OBJECT (player, "Linking audio pad to demuxera");
       decodera = gst_bin_get_by_name (GST_BIN(pipeline), "decodera");
       ret = gst_pad_link (pad, gst_element_get_pad (decodera, "sink"));
       if (ret != GST_PAD_LINK_OK)
-        g_debug ("ERROR linking gst elements : decodera");
+        GST_ERROR_OBJECT (player, "ERROR linking gst elements : decodera");
       g_signal_connect (decodera, "new-decoded-pad",
           G_CALLBACK (on_pad_added), player);
     }
@@ -472,7 +485,7 @@ build_pipeline (GbpPlayer *player)
   gst_bin_add_many (GST_BIN (player->priv->pipeline), livesrc, livedemux,
       decodera, decoderv, NULL);
   ret = gst_element_link (livesrc, livedemux);
-  if (ret != 1) g_debug ("ERROR linking gst elements : livesrc to livedemuxer");
+  if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements : livesrc to livedemuxer");
 
   g_signal_connect (livedemux, "pad-added",
       G_CALLBACK (on_livedemux_pad_added), player);
@@ -491,6 +504,12 @@ build_pipeline (GbpPlayer *player)
       NULL);
 
   player->priv->have_pipeline = TRUE;
+
+  if (player->priv->volume)
+    g_object_set (
+        gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"), 
+        "volume", player->priv->volume, NULL);
+
   return TRUE;
 }
 
@@ -499,25 +518,21 @@ gbp_player_start (GbpPlayer *player)
 {
   g_return_if_fail (player != NULL);
 
-  if (player->priv->have_pipeline == FALSE) {
-    if (!build_pipeline (player))
-      /* player::error has been emitted, return */
-      return;
-  }
+  if (!build_pipeline (player))
+    /* player::error has been emitted, return */
+    return;
 
-  if (player->priv->uri_changed) {
-    gbp_player_stop (player);
+  g_object_set (
+      gst_bin_get_by_name (GST_BIN(player->priv->pipeline), "livesrc"),
+      "uri", player->priv->uri, NULL);
 
+  if (player->priv->key != NULL) {
     g_object_set (
-        gst_bin_get_by_name (GST_BIN(player->priv->pipeline), "livesrc"),
-        "uri", player->priv->uri, NULL);
-    player->priv->uri_changed = FALSE;
+      gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "dmux"),
+      "masterkey", player->priv->key, NULL);
+    GST_WARNING_OBJECT (player, "\nSetting the masterkey to %s\n\n", player->priv->key);
   }
-
-  if (player->priv->reset_state) {
-    gbp_player_stop (player);
-    player->priv->reset_state = FALSE;
-  }
+  player->priv->reset_state = FALSE;
 
   gst_element_set_state (GST_ELEMENT (player->priv->pipeline),
       GST_STATE_PLAYING);

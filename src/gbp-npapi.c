@@ -494,6 +494,8 @@ NP_Initialize (NPNetscapeFuncs *mozilla_vtable, NPPluginFuncs *plugin_vtable)
   gst_init (NULL, NULL);
   registry = gst_registry_get_default ();
 
+  gst_debug_set_threshold_for_name ((gchar*) "*", 2);
+
   gst_registry_add_path (registry, library_path);
   gst_registry_scan_path (registry, library_path);
 

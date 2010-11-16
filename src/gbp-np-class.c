@@ -803,7 +803,7 @@ playback_command_new (PlaybackCommandCode code,
 {
   PlaybackCommand *command = g_new0 (PlaybackCommand, 1);
   if (data)
-    command->player = g_object_ref (data->player);
+    command->player = GBP_PLAYER (g_object_ref (data->player);
   else
     command->player = NULL;
   command->code = code;
@@ -869,7 +869,7 @@ playback_command_push (PlaybackCommandCode code,
   g_async_queue_unlock (data->playback_queue);
 
   if (command && wait) {
-    GbpPlayer *player = g_object_ref (data->player);
+    GbpPlayer *player = GBP_PLAYER (g_object_ref (data->player));
 
     GST_DEBUG_OBJECT (player, "waiting for command %s to begin",
         playback_command_names[code]);
@@ -960,7 +960,7 @@ do_playback_queue (NPPGbpData *data, GAsyncQueue *queue, GTimeVal *timeout)
   gboolean exit = FALSE;
 
   while (exit == FALSE) {
-    command = g_async_queue_timed_pop (queue, timeout);
+    command = (PlaybackCommand *) g_async_queue_timed_pop (queue, timeout);
     if (command == NULL)
       break;
 
@@ -969,7 +969,7 @@ do_playback_queue (NPPGbpData *data, GAsyncQueue *queue, GTimeVal *timeout)
     g_async_queue_lock (queue);
     if (exit) {
       while (g_async_queue_length_unlocked (queue)) {
-        flushed_command = g_async_queue_pop_unlocked (queue);
+        flushed_command = (PlaybackCommand *) g_async_queue_pop_unlocked (queue);
         playback_command_free (flushed_command);
       }
 

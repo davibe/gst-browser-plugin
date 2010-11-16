@@ -143,13 +143,13 @@ NPP_New (NPMIMEType plugin_type, NPP instance, uint16_t mode,
   state4->state = "EOS";
 
   g_signal_connect_data (player, "playing",
-      G_CALLBACK(on_state_cb), state1, (GClosureNotify) g_free, 0);
+      G_CALLBACK(on_state_cb), state1, (GClosureNotify) g_free, (GConnectFlags) 0);
   g_signal_connect_data (player, "paused",
-      G_CALLBACK(on_state_cb), state2, (GClosureNotify) g_free, 0);
+      G_CALLBACK(on_state_cb), state2, (GClosureNotify) g_free, (GConnectFlags) 0);
   g_signal_connect_data (player, "stopped",
-      G_CALLBACK(on_state_cb), state3, (GClosureNotify) g_free, 0);
+      G_CALLBACK(on_state_cb), state3, (GClosureNotify) g_free, (GConnectFlags) 0);
   g_signal_connect_data (player, "eos",
-      G_CALLBACK(on_state_cb), state4, (GClosureNotify) g_free, 0);
+      G_CALLBACK(on_state_cb), state4, (GClosureNotify) g_free, (GConnectFlags) 0);
 
   instance->pdata = pdata;
 
@@ -448,7 +448,7 @@ char * get_library_path () {
   hmod = (HMODULE) mbi.AllocationBase;
 
   GetModuleFileName(hmod, module_name, sizeof(module_name));
-  dir = calloc (1, 1024);
+  dir = (char *) calloc (1, 1024);
   _splitpath (module_name, drive, path, fname, ext);
   strcat (dir, drive);
   strcat (dir, path);
@@ -486,7 +486,7 @@ NP_Initialize (NPNetscapeFuncs *mozilla_vtable, NPPluginFuncs *plugin_vtable)
   library_path = get_library_path();
 #ifdef XP_WIN
   SetDllDirectory (library_path);
-  SetEnvironmentVariable ("GST_DEBUG_FILE", "c:/wimtv.log");
+  //SetEnvironmentVariable ("GST_DEBUG_FILE", "c:/wimtv.log");
   SetEnvironmentVariable ("GST_PLUGIN_PATH", "none");
 #endif
 
@@ -494,7 +494,7 @@ NP_Initialize (NPNetscapeFuncs *mozilla_vtable, NPPluginFuncs *plugin_vtable)
   gst_init (NULL, NULL);
   registry = gst_registry_get_default ();
 
-  gst_debug_set_threshold_for_name ((gchar*) "*", 2);
+  //gst_debug_set_threshold_for_name ((gchar*) "*", (GstDebugLevel) 2);
 
   gst_registry_add_path (registry, library_path);
   gst_registry_scan_path (registry, library_path);
@@ -529,7 +529,7 @@ NP_GetEntryPoints (NPPluginFuncs *plugin_vtable)
   return fill_plugin_vtable (plugin_vtable);
 }
 
-NPError
+NPError OSCALL
 NP_Shutdown ()
 {
   GSList *walk;
@@ -597,7 +597,7 @@ invoke_data_new (NPP instance, NPObject *object, int n_args)
 
   invoke_data->instance = instance;
   invoke_data->object = NPN_RetainObject (object);
-  invoke_data->args = NPN_MemAlloc (sizeof (NPVariant) * n_args);
+  invoke_data->args = (NPVariant *) NPN_MemAlloc (sizeof (NPVariant) * n_args);
   invoke_data->n_args = n_args;
 
   g_static_mutex_lock (&pending_invoke_data_lock);

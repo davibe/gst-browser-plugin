@@ -75,6 +75,8 @@ static bool gbp_np_class_method_start (NPObject *obj, NPIdentifier name,
     const NPVariant *args, uint32_t argCount, NPVariant *result);
 static bool gbp_np_class_method_stop (NPObject *obj, NPIdentifier name,
     const NPVariant *args, uint32_t argCount, NPVariant *result);
+static bool gbp_np_class_method_toggle_fullscreen (NPObject *obj, NPIdentifier name,
+    const NPVariant *args, uint32_t argCount, NPVariant *result);
 static bool gbp_np_class_method_pause (NPObject *obj, NPIdentifier name,
     const NPVariant *args, uint32_t argCount, NPVariant *result);
 static bool gbp_np_class_method_set_error_handler (NPObject *obj,
@@ -142,6 +144,7 @@ static GAsyncQueue *joinable_threads;
 static GbpNPClassMethod gbp_np_class_methods[] = {
   {"start", gbp_np_class_method_start},
   {"stop", gbp_np_class_method_stop},
+  {"toggleFullscreen", gbp_np_class_method_toggle_fullscreen},
   {"pause", gbp_np_class_method_pause},
   {"get_duration", gbp_np_class_method_get_duration},
   {"get_position", gbp_np_class_method_get_position},
@@ -319,6 +322,24 @@ gbp_np_class_method_stop (NPObject *npobj, NPIdentifier name,
   NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
   playback_command_push (PLAYBACK_CMD_STOP, data, FALSE, FALSE);
 
+  VOID_TO_NPVARIANT (*result);
+  return TRUE;
+}
+
+static bool
+gbp_np_class_method_toggle_fullscreen (NPObject *npobj, NPIdentifier name,
+    const NPVariant *args, uint32_t argCount, NPVariant *result)
+{
+  GbpNPObject *obj = (GbpNPObject *) npobj;
+
+  g_return_val_if_fail (obj != NULL, FALSE);
+  g_return_val_if_fail (name != NULL, FALSE);
+  g_return_val_if_fail (args != NULL, FALSE);
+  g_return_val_if_fail (result != NULL, FALSE);
+
+  NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
+  gbp_player_toggle_fullscreen (data->player);
+  
   VOID_TO_NPVARIANT (*result);
   return TRUE;
 }
@@ -803,7 +824,7 @@ playback_command_new (PlaybackCommandCode code,
 {
   PlaybackCommand *command = g_new0 (PlaybackCommand, 1);
   if (data)
-    command->player = GBP_PLAYER (g_object_ref (data->player);
+    command->player = (GbpPlayer *) g_object_ref (data->player);
   else
     command->player = NULL;
   command->code = code;
@@ -869,7 +890,7 @@ playback_command_push (PlaybackCommandCode code,
   g_async_queue_unlock (data->playback_queue);
 
   if (command && wait) {
-    GbpPlayer *player = GBP_PLAYER (g_object_ref (data->player));
+    GbpPlayer *player = (GbpPlayer *) g_object_ref (data->player);
 
     GST_DEBUG_OBJECT (player, "waiting for command %s to begin",
         playback_command_names[code]);

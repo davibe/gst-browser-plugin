@@ -66,6 +66,7 @@ GType gbp_player_get_type(void);
 void gbp_player_start (GbpPlayer *player);
 void gbp_player_pause (GbpPlayer *player);
 void gbp_player_stop (GbpPlayer *player);
+void gbp_player_toggle_fullscreen (GbpPlayer *player);
 GstClockTime gbp_player_get_duration (GbpPlayer *player);
 GstClockTime gbp_player_get_position (GbpPlayer *player);
 gboolean gbp_player_seek (GbpPlayer *player,

@@ -21,11 +21,17 @@
  */
 #include "config.h"
 
+#ifdef XP_WIN
+#define FULLSCREEN
+#endif
+
 #include <string.h>
 #include <gst/interfaces/xoverlay.h>
 #include "gbp-player.h"
 #include "gbp-marshal.h"
+#ifdef FULLSCREEN
 #include "gfullscreenwindow.h"
+#endif
 
 GST_DEBUG_CATEGORY (gbp_player_debug);
 
@@ -507,7 +513,9 @@ on_livedemux_pad_added (GstElement *element, GstPad *pad, gpointer data)
 }
 
 void gbp_player_toggle_fullscreen (GbpPlayer *player) {
+#ifdef FULLSCREEN
   g_fullscreen_window_show (player->priv->fs_window);
+#endif
 }
 
 static gboolean

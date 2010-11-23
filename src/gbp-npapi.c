@@ -282,7 +282,7 @@ attach_nsview_to_window (NSView *clippingView, NPWindow *npwindow,
 #ifndef __LP64__
   else {
     ptr = ((NP_Port*) npwindow->window)->port;
-    window_ref = GetWindowFromPort(ptr);
+    window_ref = (WindowRef) GetWindowFromPort(ptr);
     nsw = [[NSWindow alloc] initWithWindowRef:window_ref];
   }
 #endif

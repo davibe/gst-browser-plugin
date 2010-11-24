@@ -30,7 +30,7 @@
 #include "gbp-player.h"
 #include "gbp-marshal.h"
 #ifdef FULLSCREEN
-#include "gfullscreenwindow.h"
+#include "fullscreen-window.h"
 #endif
 
 GST_DEBUG_CATEGORY (gbp_player_debug);
@@ -80,7 +80,7 @@ struct _GbpPlayerPrivate
   gboolean have_audio;
   char *video_sink;
 #ifdef FULLSCREEN
-  GFullScreenWindow *fs_window;
+  FullscreenWindow *fs_window;
 #endif
 >>>>>>> Add fullscreen support for windows
 };
@@ -337,11 +337,7 @@ on_pad_added (GstElement *element,
 
   GstElement *tee;
   GstElement *tee_queue;
-#ifdef FULLSCREEN /* experimental fullscreen */
-  GstElement *tee_queue_fs;
-  GstElement *videosink_fs;
-  //GFullScreenWindow *fs_window;
-#endif
+
   GbpPlayer *player;
   int ret;
 
@@ -399,20 +395,10 @@ on_pad_added (GstElement *element,
     tee = gst_element_factory_make ("tee", "tee");
     tee_queue = gst_element_factory_make ("queue", "tee_queue");
 
-#ifdef FULLSCREEN /* experimental fullscreen */
-    tee_queue_fs = gst_element_factory_make ("queue", "tee_queue_fs");
-    videosink_fs = gst_element_factory_make ("autovideosink", "videosink_fs");
-    player->priv->fs_window = g_fullscreen_window_new ();
-    g_object_connect (videosink_fs,
-        "signal::element-added", autovideosink_element_added_cb, player,
-        NULL);
-    g_fullscreen_window_hide (player->priv->fs_window);
-#endif
-
 #ifdef XP_MACOSX
-    videosink = gst_element_factory_make ("osxvideosink", NULL);
+    videosink = gst_element_factory_make ("osxvideosink", "videosink");
 #else
-    videosink = gst_element_factory_make ("autovideosink", NULL);
+    videosink = gst_element_factory_make ("autovideosink", "videosink");
 #endif
 
     g_object_connect (videosink,
@@ -421,12 +407,7 @@ on_pad_added (GstElement *element,
 
     gst_bin_add_many(GST_BIN (pipeline), queue_v, ffmpegcolorspace, videoscale,
         tee, tee_queue, videosink, NULL);
-    
-#ifdef FULLSCREEN /* experimental fullscreen */
-    gst_bin_add_many(GST_BIN (pipeline), tee_queue_fs, videosink_fs, NULL);
-    ret = gst_element_link_many (tee, tee_queue_fs, videosink_fs, NULL);
-    if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements in videopipeline");
-#endif
+
     ret = gst_element_link_many (queue_v, ffmpegcolorspace, videoscale,
         tee, tee_queue, videosink, NULL);
     if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements in videopipeline");
@@ -441,11 +422,6 @@ on_pad_added (GstElement *element,
     gst_element_set_state(videoscale, GST_STATE_PLAYING);
     gst_element_set_state(tee, GST_STATE_PLAYING);
     
-    
-#ifdef FULLSCREEN /* experimental fullscreen */
-    gst_element_set_state(tee_queue_fs, GST_STATE_PLAYING);
-    gst_element_set_state(videosink_fs, GST_STATE_PLAYING);
-#endif
     gst_element_set_state(tee_queue, GST_STATE_PLAYING);
     gst_element_set_state(videosink, GST_STATE_PLAYING);
 
@@ -458,12 +434,6 @@ on_pad_added (GstElement *element,
 #else
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
-        "ts-offset", 4*GST_SECOND, NULL);
-#endif
-
-#ifdef FULLSCREEN /* experimental fullscreen */
-    g_object_set (
-        GST_OBJECT (g_list_first (GST_BIN_CAST(videosink_fs)->children)->data),
         "ts-offset", 4*GST_SECOND, NULL);
 #endif
   }
@@ -512,9 +482,36 @@ on_livedemux_pad_added (GstElement *element, GstPad *pad, gpointer data)
     gst_caps_unref (caps);
 }
 
+void fullscreen_window_clicked_cb (gpointer data1, gpointer data) {
+#ifdef FULLSCREEN
+  GstElement *videosink;
+  GstPipeline *pipeline;
+  GbpPlayer *player;
+
+  player = GBP_PLAYER (data);
+  pipeline = player->priv->pipeline;
+#ifdef WIN32
+  videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink-actual-sink-directdraw");
+  gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
+      (gulong) player->priv->xid);
+#endif
+  g_object_unref (player->priv->fs_window);
+#endif
+}
+
 void gbp_player_toggle_fullscreen (GbpPlayer *player) {
 #ifdef FULLSCREEN
-  g_fullscreen_window_show (player->priv->fs_window);
+  GstElement *videosink;
+
+  player->priv->fs_window = fullscreen_window_new ();
+#ifdef WIN32
+  videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink-actual-sink-directdraw");
+  gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
+      (gulong) fullscreen_window_get_handle (player->priv->fs_window));
+#endif
+
+  g_signal_connect (player->priv->fs_window, "clicked", 
+      G_CALLBACK (fullscreen_window_clicked_cb), player);
 #endif
 }
 
@@ -932,11 +929,6 @@ on_bus_element_cb (GstBus *bus, GstMessage *message,
 
   if (!strcmp (structure_name, "prepare-xwindow-id")) {
     sink = GST_ELEMENT (message->src);
-#ifdef FULLSCREEN
-    if (!strcmp (gst_element_get_name (sink), "videosink_fs-actual-sink-directdraw")) {
-      gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (sink), (gulong) player->priv->fs_window->hWnd);
-    } else
-#endif
     gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (sink), (gulong) player->priv->xid);
   }
 }

@@ -6,7 +6,7 @@ libgst_browser_plugin_la_SOURCES = \
   gbp-np-class.c \
   gbp-plugin.c \
   gbp-player.c \
-	npn-gate.c
+	npn-gate.c WrapperView.c fullscreen-window.c
 
 nodist_libgst_browser_plugin_la_SOURCES = \
   gbp-marshal.c
@@ -43,7 +43,7 @@ noinst_HEADERS = \
 	npapi.h \
 	npfunctions.h \
 	npruntime.h \
-	nptypes.h
+	nptypes.h WrapperView.h fullscreen-window.h
 
 gbp-marshal.h: gbp-marshal.list
 	glib-genmarshal --header --prefix=gbp_marshal $(srcdir)/gbp-marshal.list > gbp-marshal.h.tmp

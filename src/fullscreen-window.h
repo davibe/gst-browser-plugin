@@ -40,7 +40,7 @@ GType fullscreen_window_get_type (void);
 
 FullscreenWindow* fullscreen_window_new (void);
 void* fullscreen_window_get_handle (FullscreenWindow *);
-
+void fullscreen_window_emit_clicked_signal (FullscreenWindow *);
 G_END_DECLS
 
 #endif 

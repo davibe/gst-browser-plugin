@@ -1,7 +1,10 @@
-
 #include "fullscreen-window.h"
 #ifdef WIN32
 #include <windows.h>
+#endif
+#ifdef __APPLE__
+#import <Cocoa/Cocoa.h>
+#import "WrapperView.h"
 #endif
 
 G_DEFINE_TYPE (FullscreenWindow, fullscreen_window, G_TYPE_OBJECT)
@@ -16,13 +19,13 @@ struct _FullscreenWindowPrivate {
   HWND hWnd;
   GThread *thread;
 #endif
-#ifdef __apple__
-
+#ifdef __APPLE__
+  NSView *view;
 #endif
 };
 
 enum {
-  SIGNAL_CLICKED,  
+  SIGNAL_CLICKED,
   LAST_SIGNAL
 };
 
@@ -36,14 +39,22 @@ fullscreen_window_thread (gpointer object);
 #endif WIN32
 
 static void
-fullscreen_window_finalize (GObject *object)
-{
+fullscreen_window_finalize (GObject *object) {
+#ifdef __APPLE__
+  FullscreenWindow *self = FULLSCREEN_WINDOW (object);
+  [self->priv->view exitFullScreenModeWithOptions: NULL];
+  //[self->priv->view release];
+
+#endif
   G_OBJECT_CLASS (fullscreen_window_parent_class)->finalize (object);
 }
 
+void fullscreen_window_emit_clicked_signal (FullscreenWindow *self) {
+  g_signal_emit (self, window_signals[SIGNAL_CLICKED], 0);
+}
+
 static void
-fullscreen_window_class_init (FullscreenWindowClass *klass)
-{
+fullscreen_window_class_init (FullscreenWindowClass *klass) {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FullscreenWindowPrivate));
@@ -54,19 +65,17 @@ fullscreen_window_class_init (FullscreenWindowClass *klass)
       G_TYPE_FROM_CLASS (klass), G_SIGNAL_RUN_LAST,
       G_STRUCT_OFFSET (FullscreenWindowClass, clicked), NULL, NULL,
       g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
-  
 }
 
 static void
-fullscreen_window_init (FullscreenWindow *self)
-{
+fullscreen_window_init (FullscreenWindow *self) {
   /* create the window */
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
       FULLSCREEN_TYPE_WINDOW, FullscreenWindowPrivate);
 
 #ifdef WIN32
   self->priv->window_created_signal = CreateSemaphore (NULL, 0, 1, NULL);
-  
+
   self->priv->thread = g_thread_create (
     (GThreadFunc) fullscreen_window_thread, self, TRUE, NULL);
 
@@ -76,20 +85,29 @@ fullscreen_window_init (FullscreenWindow *self)
 
   CloseHandle (self->priv->window_created_signal);
 #endif
+
+#ifdef __APPLE__
+  NSRect r;
+  self->priv->view = [[WrapperView alloc] initWithFrame: r fromInstance: self];
+  [self->priv->view enterFullScreenMode:[NSScreen mainScreen] withOptions:NULL];
+#endif
 }
 
 FullscreenWindow*
-fullscreen_window_new (void)
-{
+fullscreen_window_new (void) {
   return FULLSCREEN_WINDOW (g_object_new (FULLSCREEN_TYPE_WINDOW, NULL));
 }
 
 void *
-fullscreen_window_get_handle (FullscreenWindow *self)
-{
+fullscreen_window_get_handle (FullscreenWindow *self) {
 #ifdef WIN32
   return (void *) self->priv->hWnd;
 #endif
+
+#ifdef __APPLE__
+  return self->priv->view;
+#endif
+
   return  NULL;
 }
 
@@ -114,7 +132,6 @@ WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 static gpointer 
 fullscreen_window_thread (gpointer object) {
-
   FullscreenWindow *obj;
 
   WNDCLASS WndClass;
@@ -149,8 +166,7 @@ fullscreen_window_thread (gpointer object) {
     DispatchMessage (&msg);
   }
 
-  g_signal_emit (obj, window_signals[SIGNAL_CLICKED], 0);
-  
+  fullscreen_window_emit_clicked_signal(obj);
   return NULL;
 }
 #endif

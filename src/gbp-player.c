@@ -24,6 +24,9 @@
 #ifdef XP_WIN
 #define FULLSCREEN
 #endif
+#ifdef XP_MACOSX
+#define FULLSCREEN
+#endif
 
 #include <string.h>
 #include <gst/interfaces/xoverlay.h>
@@ -421,7 +424,7 @@ on_pad_added (GstElement *element,
     gst_element_set_state(ffmpegcolorspace, GST_STATE_PLAYING);
     gst_element_set_state(videoscale, GST_STATE_PLAYING);
     gst_element_set_state(tee, GST_STATE_PLAYING);
-    
+
     gst_element_set_state(tee_queue, GST_STATE_PLAYING);
     gst_element_set_state(videosink, GST_STATE_PLAYING);
 
@@ -490,11 +493,18 @@ void fullscreen_window_clicked_cb (gpointer data1, gpointer data) {
 
   player = GBP_PLAYER (data);
   pipeline = player->priv->pipeline;
-#ifdef WIN32
+#ifdef XP_WIN
   videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink-actual-sink-directdraw");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) player->priv->xid);
 #endif
+
+#ifdef XP_MACOSX
+  videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink");
+  gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
+      (gulong) player->priv->xid);
+#endif
+
   g_object_unref (player->priv->fs_window);
 #endif
 }
@@ -504,8 +514,14 @@ void gbp_player_toggle_fullscreen (GbpPlayer *player) {
   GstElement *videosink;
 
   player->priv->fs_window = fullscreen_window_new ();
-#ifdef WIN32
+#ifdef XP_WIN
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink-actual-sink-directdraw");
+  gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
+      (gulong) fullscreen_window_get_handle (player->priv->fs_window));
+endif
+
+#ifdef XP_MACOSX
+  videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) fullscreen_window_get_handle (player->priv->fs_window));
 #endif

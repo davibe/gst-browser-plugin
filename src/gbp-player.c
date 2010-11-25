@@ -518,7 +518,7 @@ void gbp_player_toggle_fullscreen (GbpPlayer *player) {
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink-actual-sink-directdraw");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) fullscreen_window_get_handle (player->priv->fs_window));
-endif
+#endif
 
 #ifdef XP_MACOSX
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink");

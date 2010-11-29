@@ -15,11 +15,11 @@
   return result;
 }
 
-- (BOOL)acceptsFirstResponder{
+- (BOOL) acceptsFirstResponder {
   return NO;
 }
 
-- (void)mouseDown:(NSEvent*)theEvent {
+- (void) mouseDown:(NSEvent*)theEvent {
   if ([theEvent clickCount] < 2) 
     return;
   

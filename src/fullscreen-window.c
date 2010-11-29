@@ -32,19 +32,21 @@ enum {
 static guint window_signals[LAST_SIGNAL];
 
 #ifdef WIN32
-LRESULT CALLBACK 
+LRESULT CALLBACK
 WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-static gpointer 
+static gpointer
 fullscreen_window_thread (gpointer object);
 #endif WIN32
 
 static void
 fullscreen_window_finalize (GObject *object) {
 #ifdef __APPLE__
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
   FullscreenWindow *self = FULLSCREEN_WINDOW (object);
   [self->priv->view exitFullScreenModeWithOptions: NULL];
-  //[self->priv->view release];
-
+  [self->priv->view removeFromSuperview];
+  [self->priv->view release];
+  [pool release];
 #endif
   G_OBJECT_CLASS (fullscreen_window_parent_class)->finalize (object);
 }
@@ -87,9 +89,14 @@ fullscreen_window_init (FullscreenWindow *self) {
 #endif
 
 #ifdef __APPLE__
-  NSRect r;
-  self->priv->view = [[WrapperView alloc] initWithFrame: r fromInstance: self];
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  self->priv->view = [[WrapperView alloc]
+      initWithFrame: [[[NSApplication sharedApplication] mainWindow] frame]
+      fromInstance: self];
+  [[[[NSApplication sharedApplication] mainWindow] contentView]
+      addSubview: self->priv->view];
   [self->priv->view enterFullScreenMode:[NSScreen mainScreen] withOptions:NULL];
+  [pool release];
 #endif
 }
 
@@ -112,7 +119,7 @@ fullscreen_window_get_handle (FullscreenWindow *self) {
 }
 
 #ifdef WIN32
-LRESULT CALLBACK 
+LRESULT CALLBACK
 WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   switch (msg) {
     case WM_CLOSE:
@@ -130,7 +137,7 @@ WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   return 0;
 }
 
-static gpointer 
+static gpointer
 fullscreen_window_thread (gpointer object) {
   FullscreenWindow *obj;
 

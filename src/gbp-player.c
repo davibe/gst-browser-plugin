@@ -27,6 +27,9 @@
 #ifdef XP_MACOSX
 #define FULLSCREEN
 #endif
+#ifdef __linux__
+#define FULLSCREEN
+#endif
 
 #include <string.h>
 #include <gst/interfaces/xoverlay.h>
@@ -398,11 +401,7 @@ on_pad_added (GstElement *element,
     tee = gst_element_factory_make ("tee", "tee");
     tee_queue = gst_element_factory_make ("queue", "tee_queue");
 
-#ifdef XP_MACOSX
-    videosink = gst_element_factory_make ("osxvideosink", "videosink");
-#else
     videosink = gst_element_factory_make ("autovideosink", "videosink");
-#endif
 
     g_object_connect (videosink,
         "signal::element-added", autovideosink_element_added_cb, player,
@@ -497,10 +496,9 @@ void fullscreen_window_clicked_cb (gpointer data1, gpointer data) {
   videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink-actual-sink-directdraw");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) player->priv->xid);
-#endif
-
-#ifdef XP_MACOSX
+#else
   videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink");
+  videosink = GST_ELEMENT (g_list_first (GST_BIN_CAST (videosink)->children)->data);  
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) player->priv->xid);
 #endif
@@ -518,10 +516,9 @@ void gbp_player_toggle_fullscreen (GbpPlayer *player) {
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink-actual-sink-directdraw");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) fullscreen_window_get_handle (player->priv->fs_window));
-#endif
-
-#ifdef XP_MACOSX
+#else
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink");
+  videosink = GST_ELEMENT (g_list_first (GST_BIN_CAST (videosink)->children)->data);
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) fullscreen_window_get_handle (player->priv->fs_window));
 #endif

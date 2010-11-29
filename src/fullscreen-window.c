@@ -6,6 +6,10 @@
 #import <Cocoa/Cocoa.h>
 #import "WrapperView.h"
 #endif
+#ifdef __linux__
+#include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#endif
 
 G_DEFINE_TYPE (FullscreenWindow, fullscreen_window, G_TYPE_OBJECT)
 
@@ -22,6 +26,9 @@ struct _FullscreenWindowPrivate {
 #ifdef __APPLE__
   NSView *view;
 #endif
+#ifdef __linux__
+  GtkWidget *win;
+#endif
 };
 
 enum {
@@ -36,7 +43,7 @@ LRESULT CALLBACK
 WndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static gpointer
 fullscreen_window_thread (gpointer object);
-#endif WIN32
+#endif
 
 static void
 fullscreen_window_finalize (GObject *object) {
@@ -47,6 +54,12 @@ fullscreen_window_finalize (GObject *object) {
   [self->priv->view removeFromSuperview];
   [self->priv->view release];
   [pool release];
+#endif
+#ifdef __linux__
+  FullscreenWindow *self = FULLSCREEN_WINDOW (object);
+  gdk_threads_enter ();
+  gtk_widget_destroy (self->priv->win);
+  gdk_threads_leave ();
 #endif
   G_OBJECT_CLASS (fullscreen_window_parent_class)->finalize (object);
 }
@@ -68,6 +81,13 @@ fullscreen_window_class_init (FullscreenWindowClass *klass) {
       G_STRUCT_OFFSET (FullscreenWindowClass, clicked), NULL, NULL,
       g_cclosure_marshal_VOID__VOID, G_TYPE_NONE, 0);
 }
+
+#ifdef __linux__
+void fullscreen_window_button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer target) {
+  FullscreenWindow *self = target;
+  fullscreen_window_emit_clicked_signal (self);
+}
+#endif
 
 static void
 fullscreen_window_init (FullscreenWindow *self) {
@@ -98,6 +118,21 @@ fullscreen_window_init (FullscreenWindow *self) {
   [self->priv->view enterFullScreenMode:[NSScreen mainScreen] withOptions:NULL];
   [pool release];
 #endif
+
+#ifdef __linux__
+  GtkWidget *close;
+  gdk_threads_enter ();
+  self->priv->win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_container_set_border_width (GTK_CONTAINER (self->priv->win), 10);
+  gtk_widget_realize (self->priv->win);
+  gtk_window_fullscreen ((GtkWindow *) self->priv->win);
+  close = gtk_button_new_with_label("Close Window");
+  gtk_widget_add_events (self->priv->win, GDK_BUTTON_PRESS_MASK);
+  g_signal_connect (self->priv->win, "button-press-event", G_CALLBACK (fullscreen_window_button_press_cb), self);
+  gtk_widget_show_all (self->priv->win);
+  gdk_flush ();
+  gdk_threads_leave ();
+#endif
 }
 
 FullscreenWindow*
@@ -115,6 +150,9 @@ fullscreen_window_get_handle (FullscreenWindow *self) {
   return self->priv->view;
 #endif
 
+#ifdef __linux__
+  return (void *) GDK_WINDOW_XID ((GdkDrawable *) self->priv->win->window);
+#endif
   return  NULL;
 }
 

@@ -22,6 +22,9 @@ GST_REQ=0.10.18
 PKG_CHECK_MODULES(GST, gstreamer-0.10)
 AM_CONDITIONAL([OSX_BUILD], [test x$target_vendor = xapple])
 AM_CONDITIONAL([MINGW_BUILD], [test x${target_os:0:5} = xmingw])
+if test "x$host_os" = "xlinux-gnu"; then
+  PKG_CHECK_MODULES([GTK], [gtk+-2.0])
+fi
 if test "x$target_vendor" = "xapple"; then
   MANIFEST_PLATFORM=Darwin
 else

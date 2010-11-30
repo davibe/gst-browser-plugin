@@ -85,7 +85,14 @@ fullscreen_window_class_init (FullscreenWindowClass *klass) {
 #ifdef __linux__
 void fullscreen_window_button_press_cb (GtkWidget *widget, GdkEventButton *event, gpointer target) {
   FullscreenWindow *self = target;
-  fullscreen_window_emit_clicked_signal (self);
+  if (self != NULL)
+    fullscreen_window_emit_clicked_signal (self);
+}
+
+void fullscreen_window_destroy_cb (GtkWidget *widget, gpointer target) {
+  FullscreenWindow *self = target;
+  if (self != NULL)
+    fullscreen_window_emit_clicked_signal (self);
 }
 #endif
 
@@ -129,6 +136,7 @@ fullscreen_window_init (FullscreenWindow *self) {
   close = gtk_button_new_with_label("Close Window");
   gtk_widget_add_events (self->priv->win, GDK_BUTTON_PRESS_MASK);
   g_signal_connect (self->priv->win, "button-press-event", G_CALLBACK (fullscreen_window_button_press_cb), self);
+  g_signal_connect (self->priv->win, "destroy", G_CALLBACK (fullscreen_window_destroy_cb), self);
   gtk_widget_show_all (self->priv->win);
   gdk_flush ();
   gdk_threads_leave ();

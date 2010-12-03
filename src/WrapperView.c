@@ -23,7 +23,11 @@
   if ([theEvent clickCount] < 2) 
     return;
   
-  fullscreen_window_emit_clicked_signal(self->instance);
+  fullscreen_window_emit_clicked_signal (self->instance);
+}
+
+- (void) goFullScreen {
+  [self enterFullScreenMode:[NSScreen mainScreen] withOptions:NULL];
 }
 
 @end

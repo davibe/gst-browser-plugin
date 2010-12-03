@@ -18,4 +18,5 @@
 - (id) initWithFrame:(NSRect)frameRect fromInstance:(gpointer)instance;
 - (BOOL) acceptsFirstResponder;
 - (void) mouseDown:(NSEvent*)theEvent;
+- (void) goFullScreen; 
 @end

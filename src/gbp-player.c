@@ -220,6 +220,7 @@ gbp_player_init (GbpPlayer *player)
   player->priv->latency = 300 * GST_MSECOND;
   player->priv->tcp_timeout = 5 * GST_SECOND;
   player->priv->have_audio = TRUE;
+  player->priv->fs_window = NULL;
 }
 
 static void
@@ -284,7 +285,7 @@ gbp_player_set_property (GObject * object, guint prop_id,
 
       if (player->priv->have_pipeline)
         g_object_set (
-            gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"), 
+            gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"),
             "volume",
             g_value_get_double (value), NULL);
 
@@ -494,20 +495,23 @@ void fullscreen_window_clicked_cb (gpointer data1, gpointer data) {
       (gulong) player->priv->xid);
 #else
   videosink = gst_bin_get_by_name (GST_BIN (pipeline), "videosink");
-  videosink = GST_ELEMENT (g_list_first (GST_BIN_CAST (videosink)->children)->data);  
+  videosink = GST_ELEMENT (g_list_first (GST_BIN_CAST (videosink)->children)->data);
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
       (gulong) player->priv->xid);
 #endif
 
   g_object_unref (player->priv->fs_window);
+  player->priv->fs_window = NULL;
 #endif
 }
 
 void gbp_player_toggle_fullscreen (GbpPlayer *player) {
 #ifdef FULLSCREEN
   GstElement *videosink;
+  if (player->priv->fs_window != NULL) return;
 
   player->priv->fs_window = fullscreen_window_new ();
+  fullscreen_window_enable (player->priv->fs_window, (gpointer) player->priv->xid);
 #ifdef XP_WIN
   videosink = gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "videosink-actual-sink-directdraw");
   gst_x_overlay_set_xwindow_id (GST_X_OVERLAY (videosink),
@@ -519,7 +523,7 @@ void gbp_player_toggle_fullscreen (GbpPlayer *player) {
       (gulong) fullscreen_window_get_handle (player->priv->fs_window));
 #endif
 
-  g_signal_connect (player->priv->fs_window, "clicked", 
+  g_signal_connect (player->priv->fs_window, "clicked",
       G_CALLBACK (fullscreen_window_clicked_cb), player);
 #endif
 }
@@ -568,7 +572,7 @@ build_pipeline (GbpPlayer *player)
 
   if (player->priv->volume)
     g_object_set (
-        gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"), 
+        gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "volume"),
         "volume", player->priv->volume, NULL);
 
   return TRUE;

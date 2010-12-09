@@ -54,11 +54,11 @@ fullscreen_window_finalize (GObject *object) {
   [self->priv->view
       performSelectorOnMainThread: @selector(exitFullScreenModeWithOptions:)
       withObject: NULL
-      waitUntilDone: NO];
+      waitUntilDone: YES];
   [self->priv->view
       performSelectorOnMainThread: @selector(removeFromSuperview)
       withObject: NULL
-      waitUntilDone: NO];
+      waitUntilDone: YES];
 
   [self->priv->view release];
   [pool release];
@@ -109,6 +109,11 @@ fullscreen_window_init (FullscreenWindow *self) {
   /* create the window */
   self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self,
       FULLSCREEN_TYPE_WINDOW, FullscreenWindowPrivate);
+}
+
+void
+fullscreen_window_enable (FullscreenWindow *self, gpointer parent) {
+  /* Parent is needed only for MacOS X 10.5 */
 
 #ifdef WIN32
   self->priv->window_created_signal = CreateSemaphore (NULL, 0, 1, NULL);
@@ -125,17 +130,17 @@ fullscreen_window_init (FullscreenWindow *self) {
 
 #ifdef __APPLE__
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-  NSView *mainContentView = [[[NSApplication sharedApplication] mainWindow] contentView];
+  NSView *mainContentView = (NSView *) parent;
   self->priv->view = [[WrapperView alloc]
-      initWithFrame: [[[NSApplication sharedApplication] mainWindow] frame]
+      initWithFrame: [mainContentView frame]
       fromInstance: self];
 
-  [mainContentView performSelectorOnMainThread: @selector(addSubView:)
+  [mainContentView performSelectorOnMainThread: @selector(addSubview:)
       withObject: self->priv->view
-      waitUntilDone: NO];
+      waitUntilDone: YES];
   [self->priv->view performSelectorOnMainThread:@selector(goFullScreen)
-      withObject: Nil
-      waitUntilDone: NO];
+      withObject: nil
+      waitUntilDone: YES];
 
   [pool release];
 #endif

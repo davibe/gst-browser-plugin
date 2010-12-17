@@ -342,9 +342,6 @@ on_pad_added (GstElement *element,
   GstPipeline *pipeline;
   GstElement *videosink;
 
-  GstElement *tee;
-  GstElement *tee_queue;
-
   GbpPlayer *player;
   int ret;
 
@@ -399,8 +396,6 @@ on_pad_added (GstElement *element,
     videoscale = gst_element_factory_make ("videoscale", "videoscale");
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace",
         "ffmpegcolorspace");
-    tee = gst_element_factory_make ("tee", "tee");
-    tee_queue = gst_element_factory_make ("queue", "tee_queue");
 
     videosink = gst_element_factory_make ("autovideosink", "videosink");
 
@@ -408,11 +403,11 @@ on_pad_added (GstElement *element,
         "signal::element-added", autovideosink_element_added_cb, player,
         NULL);
 
-    gst_bin_add_many(GST_BIN (pipeline), queue_v, ffmpegcolorspace, videoscale,
-        tee, tee_queue, videosink, NULL);
+    gst_bin_add_many (GST_BIN (pipeline), queue_v, ffmpegcolorspace, videoscale,
+        videosink, NULL);
 
     ret = gst_element_link_many (queue_v, ffmpegcolorspace, videoscale,
-        tee, tee_queue, videosink, NULL);
+        videosink, NULL);
     if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements in videopipeline");
 
     sinkpad_v = gst_element_get_static_pad(queue_v, "sink");
@@ -423,9 +418,6 @@ on_pad_added (GstElement *element,
     gst_element_set_state(queue_v, GST_STATE_PLAYING);
     gst_element_set_state(ffmpegcolorspace, GST_STATE_PLAYING);
     gst_element_set_state(videoscale, GST_STATE_PLAYING);
-    gst_element_set_state(tee, GST_STATE_PLAYING);
-
-    gst_element_set_state(tee_queue, GST_STATE_PLAYING);
     gst_element_set_state(videosink, GST_STATE_PLAYING);
 
     g_object_set (GST_OBJECT (queue_v), "max-size-buffers", (guint64) 0, NULL);

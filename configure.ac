@@ -1,5 +1,5 @@
 AC_PREREQ(2.52)
-AC_INIT(GStreamer-Browser-Plugin, 0.0.0.1)
+AC_INIT(GStreamer-Browser-Plugin, 1.0.0.0)
 AM_CONFIG_HEADER([config.h])
 AC_DEFINE([PLAYBACK_THREAD_POOL], [],
     [Use a thread pool to execute playback commands])

@@ -116,6 +116,8 @@ static bool gbp_np_class_property_have_audio_get (NPObject *obj,
     NPIdentifier name, NPVariant *result);
 static bool gbp_np_class_property_have_audio_set (NPObject *obj,
     NPIdentifier name, const NPVariant *value);
+static bool gbp_np_class_property_version_get (NPObject *npobj,
+    NPIdentifier name, NPVariant *result);
 
 PlaybackCommand *playback_command_new (PlaybackCommandCode code,
     NPPGbpData *data, gboolean free_data);
@@ -162,6 +164,7 @@ static GbpNPClassProperty gbp_np_class_properties[] = {
   {"key", gbp_np_class_property_key_get, gbp_np_class_property_key_set, NULL},
   {"volume", gbp_np_class_property_volume_get, gbp_np_class_property_volume_set, NULL},
   {"have_audio", gbp_np_class_property_have_audio_get, gbp_np_class_property_have_audio_set, NULL},
+  {"version", gbp_np_class_property_version_get, NULL, NULL},
   /* sentinel */
   {NULL, NULL}
 };
@@ -339,7 +342,7 @@ gbp_np_class_method_toggle_fullscreen (NPObject *npobj, NPIdentifier name,
 
   NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
   gbp_player_toggle_fullscreen (data->player);
-  
+
   VOID_TO_NPVARIANT (*result);
   return TRUE;
 }
@@ -494,7 +497,7 @@ gbp_np_class_method_set_state_handler (NPObject *npobj, NPIdentifier name,
   data->stateHandler = NPN_RetainObject(args[0].value.objectValue);
 
   GST_DEBUG_OBJECT (data->player, "set state handler %p", data->stateHandler);
-      
+
 
   VOID_TO_NPVARIANT (*result);
   return TRUE;
@@ -707,6 +710,22 @@ static bool gbp_np_class_property_have_audio_set (NPObject *npobj,
   return TRUE;
 }
 
+static bool gbp_np_class_property_version_get (NPObject *npobj,
+    NPIdentifier name, NPVariant *result)
+{
+  char *version_copy;
+  GbpNPObject *obj = (GbpNPObject *) npobj;
+
+  g_return_val_if_fail (obj != NULL, FALSE);
+  g_return_val_if_fail (result != NULL, FALSE);
+
+  version_copy = (char *) NPN_MemAlloc (strlen (VERSION) + 1);
+  strcpy (version_copy, VERSION);
+
+  STRINGZ_TO_NPVARIANT (version_copy, *result);
+  return TRUE;
+}
+
 void
 gbp_np_class_init ()
 {
@@ -743,7 +762,7 @@ gbp_np_class_init ()
   method_names = (const char **) NPN_MemAlloc (sizeof (char *) * methods_num);
   for (i = 0; gbp_np_class_methods[i].name != NULL; ++i)
     method_names[i] = gbp_np_class_methods[i].name;
-  
+
   /* setup property identifiers */
   properties_num = \
       (sizeof (gbp_np_class_properties) / sizeof (GbpNPClassProperty)) - 1;
@@ -788,7 +807,7 @@ gbp_np_class_free ()
   g_return_if_fail (klass->structVersion != 0);
 
 #ifdef PLAYBACK_THREAD_POOL
-  g_thread_pool_free (playback_thread_pool, FALSE, FALSE);
+  g_thread_pool_free (playback_thread_pool, FALSE, TRUE);
   playback_thread_pool = NULL;
 #else
   while (g_async_queue_length (joinable_threads)) {
@@ -872,7 +891,7 @@ playback_command_push (PlaybackCommandCode code,
     command->wait = wait;
     if (command->wait)
       g_mutex_lock (command->lock);
-    
+
 
     g_async_queue_push_sorted_unlocked (data->playback_queue,
         command, compare_commands, NULL);
@@ -914,7 +933,7 @@ static gboolean
 do_playback_command (PlaybackCommand *command)
 {
   GbpPlayer *player;
-  gboolean exit = FALSE;  
+  gboolean exit = FALSE;
 
   if (command->player)
     player = command->player;
@@ -1001,7 +1020,7 @@ do_playback_queue (NPPGbpData *data, GAsyncQueue *queue, GTimeVal *timeout)
     if (g_atomic_int_dec_and_test (&data->pending_commands))
       ;
 #endif
-    
+
     g_async_queue_unlock (queue);
     playback_command_free (command);
   }

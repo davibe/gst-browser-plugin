@@ -12,8 +12,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #ifndef _MAC
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,1
+ FILEVERSION 0,0,9,1
+ PRODUCTVERSION 0,0,9,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -32,9 +32,9 @@ BEGIN
             VALUE "CompanyName", "WimTV\0"
             VALUE "FileDescription", "nprt \0"
             VALUE "FileExtents", "rts\0"
-            VALUE "FileOpenName", "nplibgbp\0"
-            VALUE "FileVersion", "1, 0, 0, 1\0"
-            VALUE "InternalName", "nplibgbp\0"
+            VALUE "FileOpenName", "nplibwtv\0"
+            VALUE "FileVersion", "0, 0, 9, 1\0"
+            VALUE "InternalName", "nplibwtv\0"
             VALUE "LegalCopyright", "Copyright © 2010\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "MIMEType", "application/x-wimtv-player\0"

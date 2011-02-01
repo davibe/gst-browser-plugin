@@ -427,14 +427,18 @@ on_pad_added (GstElement *element,
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
         "ts-offset", 4*GST_SECOND, NULL);
+#ifdef XP_UNIX
     // xvimagesink amd ximagesink
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
         "force-aspect-ratio", TRUE, NULL);
+#endif
+#ifdef XP_WIN
     // directdrawsink
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(videosink)->children)->data),
         "keep_aspect_ratio", TRUE, NULL);
+#endif
   }
 }
 

@@ -464,22 +464,26 @@ on_livedemux_pad_added (GstElement *element, GstPad *pad, gpointer data)
 
     if (g_strrstr (c, "video") || g_strrstr (c, "image")) {
       GST_WARNING_OBJECT (player, "Linking video pad to demuxerv");
-      decoderv = gst_bin_get_by_name (GST_BIN(pipeline), "decoderv");
+      decoderv = gst_element_factory_make ("decodebin", "decoderv");
+      gst_bin_add_many (GST_BIN (pipeline), decoderv, NULL);
       ret = gst_pad_link (pad, gst_element_get_pad (decoderv, "sink"));
       if (ret != GST_PAD_LINK_OK)
         GST_ERROR_OBJECT (player, "ERROR linking gst elements : decoderv");
       g_signal_connect (decoderv, "new-decoded-pad",
           G_CALLBACK (on_pad_added), player);
+      gst_element_set_state (decoderv, GST_STATE_PLAYING);
     }
 
     if (g_strrstr (c, "audio")) {
       GST_WARNING_OBJECT (player, "Linking audio pad to demuxera");
-      decodera = gst_bin_get_by_name (GST_BIN(pipeline), "decodera");
+      decodera = gst_element_factory_make ("decodebin", "decodera");
+      gst_bin_add_many (GST_BIN (pipeline), decodera, NULL);
       ret = gst_pad_link (pad, gst_element_get_pad (decodera, "sink"));
       if (ret != GST_PAD_LINK_OK)
         GST_ERROR_OBJECT (player, "ERROR linking gst elements : decodera");
       g_signal_connect (decodera, "new-decoded-pad",
           G_CALLBACK (on_pad_added), player);
+      gst_element_set_state (decodera, GST_STATE_PLAYING);
     }
 
     gst_caps_unref (caps);
@@ -548,13 +552,11 @@ build_pipeline (GbpPlayer *player)
 
   livesrc = gst_element_factory_make ("livertsp", "livesrc");
   livedemux = gst_element_factory_make ("livedemuxer", "dmux");
-  decodera = gst_element_factory_make ("decodebin", "decodera");
-  decoderv = gst_element_factory_make ("decodebin", "decoderv");
 
-  gst_bin_add_many (GST_BIN (player->priv->pipeline), livesrc, livedemux,
-      decodera, decoderv, NULL);
+  gst_bin_add_many (GST_BIN (player->priv->pipeline), livesrc, livedemux, NULL);
   ret = gst_element_link (livesrc, livedemux);
-  if (ret != 1) GST_ERROR_OBJECT (player, "ERROR linking gst elements : livesrc to livedemuxer");
+  if (ret != 1) GST_ERROR_OBJECT (player,
+      "ERROR linking gst elements : livesrc to livedemuxer");
 
   g_signal_connect (livedemux, "pad-added",
       G_CALLBACK (on_livedemux_pad_added), player);
@@ -562,7 +564,8 @@ build_pipeline (GbpPlayer *player)
   player->priv->bus = gst_pipeline_get_bus (player->priv->pipeline);
   gst_bus_enable_sync_message_emission (player->priv->bus);
   g_object_connect (player->priv->bus,
-      "signal::sync-message::state-changed", G_CALLBACK (on_bus_state_changed_cb), player,
+      "signal::sync-message::state-changed",
+          G_CALLBACK (on_bus_state_changed_cb), player,
       "signal::sync-message::eos", G_CALLBACK (on_bus_eos_cb), player,
       "signal::sync-message::error", G_CALLBACK (on_bus_error_cb), player,
       "signal::sync-message::element", G_CALLBACK (on_bus_element_cb), player,
@@ -599,7 +602,8 @@ gbp_player_start (GbpPlayer *player)
     g_object_set (
       gst_bin_get_by_name (GST_BIN (player->priv->pipeline), "dmux"),
       "masterkey", player->priv->key, NULL);
-    GST_WARNING_OBJECT (player, "\nSetting the masterkey to %s\n\n", player->priv->key);
+    GST_WARNING_OBJECT (player,
+        "\nSetting the masterkey to %s\n\n", player->priv->key);
   }
   player->priv->reset_state = FALSE;
 

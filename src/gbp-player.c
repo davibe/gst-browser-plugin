@@ -539,7 +539,7 @@ void gbp_player_toggle_fullscreen (GbpPlayer *player) {
 static gboolean
 build_pipeline (GbpPlayer *player)
 {
-  GstElement *livesrc, *livedemux, *decodera, *decoderv;
+  GstElement *livesrc, *livedemux;
   gint ret;
 
   if (player->priv->pipeline != NULL) {

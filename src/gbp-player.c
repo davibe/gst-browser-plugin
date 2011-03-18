@@ -387,7 +387,7 @@ on_pad_added (GstElement *element,
         "ts-offset", 4*GST_SECOND, NULL);
     g_object_set (
         GST_OBJECT (g_list_first (GST_BIN_CAST(audiosink)->children)->data),
-        "drift-tolerance", 500*GST_MSECOND, NULL);
+        "drift-tolerance", 500*GST_SECOND, NULL);
   }
 
   if (g_strrstr (caps_name, "video")) {

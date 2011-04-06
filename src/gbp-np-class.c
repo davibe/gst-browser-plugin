@@ -577,7 +577,8 @@ static bool gbp_np_class_property_uri_set (NPObject *npobj,
   g_return_val_if_fail (obj != NULL, FALSE);
   g_return_val_if_fail (value != NULL, FALSE);
 
-  uri = NPVARIANT_TO_STRING (*value).UTF8Characters;
+  uri = g_strndup (NPVARIANT_TO_STRING (*value).UTF8Characters,
+      NPVARIANT_TO_STRING (*value).UTF8Length);
 
   NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
 
@@ -619,7 +620,8 @@ static bool gbp_np_class_property_key_set (NPObject *npobj,
   g_return_val_if_fail (obj != NULL, FALSE);
   g_return_val_if_fail (value != NULL, FALSE);
 
-  key = NPVARIANT_TO_STRING (*value).UTF8Characters;
+  key = g_strndup (NPVARIANT_TO_STRING (*value).UTF8Characters,
+      NPVARIANT_TO_STRING (*value).UTF8Length);
 
   NPPGbpData *data = (NPPGbpData *) obj->instance->pdata;
 

@@ -13,11 +13,11 @@
 	<key>CFBundlePackageType</key>
 	<string>BRPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.0.9.1</string>
+	<string>0.0.9.2</string>
 	<key>CFBundleSignature</key>
 	<string>GBP</string>
 	<key>CFBundleVersion</key>
-	<string>0.0.9.1</string>
+	<string>0.0.9.2</string>
 	<key>WebPluginName</key>
 	<string>WimTV Browser Plug-in</string>
 	<key>WebPluginDescription</key>

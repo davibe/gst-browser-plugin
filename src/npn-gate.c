@@ -323,5 +323,13 @@ void NPN_SetException(NPObject* obj, const NPUTF8 *message)
 void NPN_PluginThreadAsyncCall(NPP instance, void (*func)(void *),
     void *userData)
 {
-  NPNFuncs.pluginthreadasynccall(instance, func, userData);
+  if (NPNFuncs.pluginthreadasynccall != NULL) {
+    NPNFuncs.pluginthreadasynccall(instance, func, userData);
+  } else {
+#ifdef __APPLE__
+#ifdef __LP64__
+    func (userData);
+#endif
+#endif
+  }
 }

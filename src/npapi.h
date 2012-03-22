@@ -48,9 +48,6 @@
 #ifndef XP_OS2
 #define XP_OS2 1
 #endif
-
-#ifdef XP_WIN
-#include <windows.h>
 #endif
 
 #if defined(_WIN32) && !defined(__SYMBIAN32__)

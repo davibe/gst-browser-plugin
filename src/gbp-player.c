@@ -44,7 +44,6 @@ GST_DEBUG_CATEGORY (gbp_player_debug);
 G_DEFINE_TYPE (GbpPlayer, gbp_player, GST_TYPE_OBJECT);
 
 #define DEFAULT_VIDEO_SINK "autovideosink"
-#define FULLSCREEN XP_WIN
 
 enum {
   PROP_0,
@@ -88,7 +87,6 @@ struct _GbpPlayerPrivate
 #ifdef FULLSCREEN
   FullscreenWindow *fs_window;
 #endif
->>>>>>> Add fullscreen support for windows
 };
 
 static guint player_signals[LAST_SIGNAL];
